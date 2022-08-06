@@ -34,7 +34,7 @@ class BRepositoryTest {
 		m1.setId("hanmirae2");
 		m1.setName("한미래2");
 		m1.setRole("데빌2");
-		//mrepo.save(m1); cascadetype을 사용함으로써 영속성이 전이되어 관리를 함
+		//mrepo.save(m1); cascadeType을 사용함으로써 영속성이 전이되어 관리를 함
 		// 부모 엔티티를 저장할 때 자식 엔티티도 같이 저장할 수 있고 부모 엔티티를 삭제할 때 자식 엔티티도 삭제할 수 있다.
 		
 		for (int i = 1; i < 4; i++ ) {
