@@ -59,11 +59,9 @@ public interface BoardRepository extends CrudRepository<Board, Long> {
 			+ "		) a\n"
 			+ "		)\n"
 			+ "		WHERE r BETWEEN ?2 AND ?3", nativeQuery = true)
-	List<Board> selectByWord(String word, int startRow, int endRow);
+	List<Board> selectByWord(String word, int startRow, int endRow);//메소드명 변경이 필요
 	
 	@Query(value="SELECT COUNT(*) FROM board_jpa WHERE board_title LIKE %?1% OR board_id LIKE %?1%", nativeQuery = true)
-	int selectCount(String word);
-	
-	
+	int selectCount(String word); // 메소드명 변경이 필요
 
 }

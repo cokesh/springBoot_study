@@ -7,6 +7,7 @@ import java.io.InputStream;
 import java.net.URLEncoder;
 import java.nio.file.Files;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import javax.servlet.ServletContext;
@@ -14,18 +15,25 @@ import javax.servlet.http.HttpSession;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-//import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.FileCopyUtils;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.my.dto.Board;
@@ -33,26 +41,39 @@ import com.my.dto.PageBean;
 import com.my.dto.ResultBean;
 import com.my.exception.AddException;
 import com.my.exception.FindException;
+import com.my.exception.ModifyException;
+import com.my.exception.RemoveException;
 import com.my.service.BoardService;
 
 import net.coobird.thumbnailator.Thumbnailator;
 
-@Controller
-public class BoardController {
-//	private Logger logger = Logger.getLogger(getClass());
+@RestController
+@RequestMapping("board/*")
+public class BoardRestController {
 	private Logger logger = LoggerFactory.getLogger(getClass());
-	
 	@Autowired
 	private BoardService service;
 
 	@Autowired
 	private ServletContext sc;
+	
+	@Value("${spring.servlet.multipart.location}")
+	private String saveDirectory;
+	
+	@GetMapping(value= {"list", "list/{optCp}"}) //두개의값 모두 전달 OK
+	public ResultBean<PageBean<Board>> list(@PathVariable Optional<Integer> optCp) { // default값이 문자열 0으로 설정하여 int로 자동형변환 되게끔한다.
 
-	@GetMapping("boardlist")
-	@ResponseBody
-	public ResultBean<PageBean<Board>> list(@RequestParam(required = false, defaultValue = "0") int currentPage) { // default값이 문자열 0으로 설정하여 int로 자동형변환 되게끔한다.
+		//		currentPage.ifPresent(null); // 값이 있다면 ~~ 해라
+
 		ResultBean<PageBean<Board>> rb = new ResultBean<>();
 		try {
+			int currentPage;
+			// 값이 있는지 없는지의 여부를 반환함(return Boolean)
+			if(optCp.isPresent() ) {
+				currentPage = optCp.get(); // Integer타입의 값을 int타입으로 오토박싱이 됨
+			} else {
+				currentPage = 1; // 값이 들어오지 않았다면 1페이지를 보여줌
+			}
 			PageBean<Board> pb = service.boardList(currentPage);
 			rb.setStatus(1);
 			rb.setT(pb);
@@ -64,13 +85,26 @@ public class BoardController {
 		return rb;
 	}
 
-	@GetMapping("search")
-	@ResponseBody
-	public ResultBean<PageBean<Board>> search(@RequestParam(required = false, defaultValue = "0") int currentPage, @RequestParam(required = false, defaultValue = "")String word) {
+	@GetMapping(value={"search", "search/{optWord}", "search/{optWord}/{optCp}"})
+	public ResultBean<PageBean<Board>> search(@PathVariable Optional<Integer> optCp, @PathVariable(required=false) Optional<String> optWord) {
 
 		ResultBean<PageBean<Board>> rb = new ResultBean<>();
 		try {
 			PageBean<Board> pb;
+			String word;
+			int currentPage = 1;
+			if(optWord.isPresent()) {
+				word = optWord.get();
+			} else {
+				word="";
+
+			}
+			if(optCp.isPresent()) {
+				currentPage = optCp.get();
+			} else {
+				currentPage = 1;
+			}
+
 			if("".equals(word)) {
 				pb = service.boardList(currentPage); // 문자열이 들어오지 않을경우 모든 값을 반환하게
 			}else {
@@ -86,9 +120,62 @@ public class BoardController {
 		return rb;
 	}
 
-	@GetMapping("viewboard")
-	@ResponseBody
-	public ResultBean<Board> viewBoard(int boardNo) {
+	@DeleteMapping("{boardNo}")
+	public ResultBean<Board> deleteBoard(@PathVariable long boardNo) {
+		ResultBean<Board> rb = new ResultBean<>();
+		try {
+			service.removeBoard(boardNo);
+			rb.setStatus(1);
+			rb.setMsg("게시글이 삭제되었습니다.");
+		} catch (RemoveException e) {
+			e.printStackTrace();
+			rb.setStatus(0);
+			rb.setMsg(e.getMessage());
+		}
+		return rb;
+	}
+
+	@PostMapping(value="reply/{boardParentNo}", produces=MediaType.APPLICATION_JSON_VALUE)
+	public ResponseEntity<String> reply(@PathVariable long boardParentNo,
+			@RequestBody Board b) {
+		if(b.getBoardTitle() == null || b.getBoardTitle().equals("") ||
+				b.getBoardContent() == null || b.getBoardContent().equals("")){
+			return new ResponseEntity<>("글제목이나 글내용은 반드시 입력하세요", HttpStatus.BAD_REQUEST);   
+		}
+		//		String loginedId = (String)session.getAttribute("loginInfo");
+		//---로그인대신할 샘플데이터--
+		String loginedId = "id1";
+		b.setBoardId(loginedId);
+		b.setBoardParentNo(boardParentNo);
+		try {
+			service.replyBoard(b);
+			return new ResponseEntity<>(HttpStatus.OK);
+		} catch (AddException e) {
+			e.printStackTrace();
+			return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+		}		
+	}
+
+	@PutMapping(value="{boardNo}", produces = MediaType.APPLICATION_JSON_VALUE)
+	public ResponseEntity<Object> modify(
+			@PathVariable long boardNo,
+			@RequestBody Board b){
+		try {
+			if(b.getBoardContent() == null || b.getBoardContent().equals("")) {
+				//유효성검사를 실시
+				return new ResponseEntity<>("글내용은 반드시 입력하세요", HttpStatus.BAD_REQUEST);
+			}
+			b.setBoardNo(boardNo);
+			service.modifyBoard(b);
+			return new ResponseEntity<>(HttpStatus.OK);
+		}catch(ModifyException e) {
+			e.printStackTrace();
+			return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+	}
+
+	@GetMapping("{boardNo}")
+	public ResultBean<Board> viewBoard(@PathVariable int boardNo) {
 		ResultBean<Board> rb = new ResultBean<>();
 		try {
 			Board b = service.viewBoard(boardNo);
@@ -103,7 +190,6 @@ public class BoardController {
 	}
 
 	@PostMapping("/writeboard")
-	@ResponseBody
 	public ResponseEntity<?> write( // json문자열 형태로 응답하지 않고 성공할시에 
 			@RequestPart(required = false) List<MultipartFile> letterFiles
 			,@RequestPart(required = false) MultipartFile imageFile
@@ -117,25 +203,24 @@ public class BoardController {
 
 		//게시글내용 DB에 저장
 		try {
-			//String loginedId = (String)session.getAttribute("loginInfo");
 			//---로그인대신할 샘플데이터--
 			String loginedId = "id1";
 			//----------------------
 			board.setBoardId(loginedId);
 			service.writeBoard(board);
-			//			return new ResponseEntity<>(HttpStatus.OK);
+			
 		} catch (AddException e1) {
 			e1.printStackTrace();
 			return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
 		}
-		//		//파일 경로 생성
-		//		String saveDirectory = "c:\\files";
-		String saveDirectory = sc.getInitParameter("filePath");
+		//파일 경로 생성
+//		String saveDirectory = sc.getInitParameter("filePath");
+//		String saveDirectory = "/Users/jasonmilian/Desktop/files";
 		if (! new File(saveDirectory).exists()) {
 			logger.info("업로드 실제경로생성");
 			new File(saveDirectory).mkdirs();
 		}
-		Long wroteBoardNo = board.getBoardNo();
+		long wroteBoardNo = board.getBoardNo();
 
 		//letterFiles 저장
 		int savedletterFileCnt = 0;//서버에 저장된 파일수

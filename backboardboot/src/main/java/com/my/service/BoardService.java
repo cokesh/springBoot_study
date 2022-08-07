@@ -30,13 +30,13 @@ public class BoardService {
 	 * @throws FindException
 	 */
 	public PageBean<Board> boardList(int currentPage) throws FindException {
-		
+
 		int endRow = currentPage * CNT_PER_PAGE;
 		int startRow = endRow - CNT_PER_PAGE + 1; 
 		List<Board> list = repository.findByPage(startRow,endRow);
 		long totalCnt = repository.count(); // 총 행수를 얻어오는 메서드
 		int cntPerPageGroup = 2;
-		
+
 		PageBean<Board> pb = new PageBean<>(list, totalCnt, currentPage, cntPerPageGroup, CNT_PER_PAGE);
 		return pb;
 	}
@@ -101,7 +101,6 @@ public class BoardService {
 		repository.save(board);
 	}
 
-
 	/**
 	 * 답글쓰기
 	 * @param board
@@ -127,13 +126,13 @@ public class BoardService {
 			throw new ModifyException("글이 없습니다.");
 		}else { // Content만 변경하고자 한다.
 			Board b = optB.get(); // 기존 내용은 가져와서 그대로 사용하고
-			//			b.setBoardTitle(board.getBoardTitle()); // 제목도 바꾸고자 할 때 
+			b.setBoardTitle(board.getBoardTitle()); // 제목도 바꾸고자 할 때 
 			b.setBoardContent(board.getBoardContent()); // content만 기존내용에서 새 내용으로 바꾸겠다.
-			repository.save(board);
+			repository.save(b);
 		}
 		// 위의 if(!optB.isPresent())랑 같은 것
-		//		optB.ifPresent((b) -> {
-		//		}); // optB.ifPresent() : 인자가 컨수머 유형?!을 요구하고 람다식 표현법 쓰면 됨
+		//				optB.ifPresent((b) -> {
+		//				}); // optB.ifPresent() : 인자가 컨수머 유형?!을 요구하고 람다식 표현법 쓰면 됨
 	}
 
 	/**
@@ -144,13 +143,18 @@ public class BoardService {
 	 */
 	public void removeBoard(Long boardNo) throws RemoveException {
 		// 해당 글 번호 삭제₩
-		repository.deleteReply(boardNo);
-		repository.findById(boardNo); // throw처리해줘야 함
-		repository.deleteById(boardNo);
-		// 이 글번호에 해당하는 답글들을 삭제해야함
-		// 답글의 답글도 삭제해야함
-		// 일반 JPA구문으로 하기 어려움
-		// JPQL 혹은 네이티브 쿼리 사용 해 주어야 함
+		Optional<Board> optB = repository.findById(boardNo); //boardNo가 PK이기 때문에 findById의 인자 BoardNo인 것
+		if(!optB.isPresent()) {
+			throw new RemoveException("글이 없습니다.");
+		} else {
+			repository.deleteReply(boardNo);
+			repository.findById(boardNo); // throw처리해줘야 함
+			repository.deleteById(boardNo);
+			// 이 글번호에 해당하는 답글들을 삭제해야함
+			// 답글의 답글도 삭제해야함
+			// 일반 JPA구문으로 하기 어려움
+			// JPQL 혹은 네이티브 쿼리 사용 해 주어야 함
+		}
 	}
 
 }

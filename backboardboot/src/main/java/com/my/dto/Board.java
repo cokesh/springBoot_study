@@ -42,12 +42,12 @@ import lombok.ToString;
 					)//오라클DB에 시퀀스 생성
 
 @DynamicInsert
-//
 //동적 SQL구문을 생성하는 @
 //insert대상 객체에서 멤버변수가 null인가 아닌가로 판단하여 ? 생성
 //board_parent_no는 (integer)참조형 데이터 타입이므로 null값이 안될 수 X  => dynamicinsert에서 체크되지 않음
 @DynamicUpdate
 //dynamicupdate에서는 기존 내용과 다른 것으로 판단 <==>dynamicInsert의 기준은 null
+//dynamic 어노테이션이 들어가면 무조건 wrapper 타입(참조형 타입)을 사용해야 한다.
 public class Board {
 	@Transient//실제 테이블에는 존재X
 	private int level; //글레벨 : 1-원글, 2-답글, 3-답답글, 4-답답답글
@@ -77,5 +77,6 @@ public class Board {
 	private String boardId; //? private Customer boardC; //게시글 작성자의 정보를 알고싶다면 Has-a관계로 선언할 것
 	
 	@Column(name="board_viewcount")
+	@ColumnDefault(value = "0")
 	private Integer boardViewcount;
 }
