@@ -15,6 +15,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort.Direction;
+import org.springframework.test.annotation.Commit;
 
 import com.my.dto.Board;
 
@@ -86,6 +87,8 @@ class BoardRepositoryTest {
 		});
 	}
 
+	@Transactional
+	@Commit
 	@Test
 	void testDelete() {
 		Long boardNo = 5L;

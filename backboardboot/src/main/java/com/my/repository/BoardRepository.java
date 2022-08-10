@@ -2,6 +2,9 @@ package com.my.repository;
 
 import java.util.List;
 
+import javax.transaction.Transactional;
+
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.CrudRepository;
 
@@ -34,13 +37,16 @@ public interface BoardRepository extends CrudRepository<Board, Long> {
 	
 	//pageable -> 페이지 처리를 쉽게 할 수 있도록 도와줌
 	// 삭제를 위한 네이티브 쿼리문 (JPA 문법으로는 글의 댓글, 대댓글 모두 삭제하기 어렵다)
+	@Modifying
 	@Query(value = 	"DELETE FROM board_jpa\r\n"
 			+ "		WHERE board_no IN ( SELECT board_no\r\n"
 			+ "							FROM board_jpa\r\n"
 			+ "							START WITH board_parent_no = ?1 \r\n"
 			+ "							CONNECT BY PRIOR board_no = board_parent_no)"
 			, nativeQuery = true) // 네이티브 쿼리문 설정하는 어노테이션
-	void deleteReply(Long boardNo) ;
+//	@Modifying
+//	@Query(value="DELETE FROM Board b WHERE b.boardNo IN ( SELECT b.boardNo FROM b START WITH b.boardParentNo = ?1 CONNECT BY PRIOR b.boardNo = b.boardParentNo )")
+	void deleteReply(Long boardNo);
 	
 	@Query(value = "SELECT *\n"
 			+ "		FROM (\n"

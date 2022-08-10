@@ -3,10 +3,9 @@ package com.my.service;
 import java.util.List;
 import java.util.Optional;
 
+import javax.transaction.Transactional;
+
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort.Direction;
 import org.springframework.stereotype.Service;
 
 import com.my.dto.Board;
@@ -141,6 +140,7 @@ public class BoardService {
 	 * @throws RemoveException 
 	 * @throws ModifyException
 	 */
+	@Transactional // 현재 removeBoard 메서드에서 한개 이상의 DML구문이 실행되게끔 코드가 구현되어져 있기 때문에 한 개의 트랜잭션에서 관리가 되어져야 하는 것들이다.
 	public void removeBoard(Long boardNo) throws RemoveException {
 		// 해당 글 번호 삭제₩
 		Optional<Board> optB = repository.findById(boardNo); //boardNo가 PK이기 때문에 findById의 인자 BoardNo인 것

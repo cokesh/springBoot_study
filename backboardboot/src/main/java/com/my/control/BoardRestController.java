@@ -22,7 +22,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.util.FileCopyUtils;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -47,13 +49,14 @@ import com.my.service.BoardService;
 
 import net.coobird.thumbnailator.Thumbnailator;
 
+@CrossOrigin(origins="*")
 @RestController
 @RequestMapping("board/*")
 public class BoardRestController {
 	private Logger logger = LoggerFactory.getLogger(getClass());
 	@Autowired
 	private BoardService service;
-
+	
 	@Autowired
 	private ServletContext sc;
 	
