@@ -72,7 +72,7 @@ public class BoardRestController {
 		try {
 			int currentPage;
 			// 값이 있는지 없는지의 여부를 반환함(return Boolean)
-			if(optCp.isPresent() ) {
+			if(optCp.isPresent()) {
 				currentPage = optCp.get(); // Integer타입의 값을 int타입으로 오토박싱이 됨
 			} else {
 				currentPage = 1; // 값이 들어오지 않았다면 1페이지를 보여줌

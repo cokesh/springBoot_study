@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.example.demo.dto.DTO;
 
 @RestController
-public class AopController {
+public class AopController { 
 	Logger logger = LoggerFactory.getLogger(getClass());
 	
 	@GetMapping("say1")
